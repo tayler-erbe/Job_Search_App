@@ -17,7 +17,7 @@ URL_FAISS_INDEX = "https://raw.githubusercontent.com/tayler-erbe/Job_Search_App/
 job_content_df = pd.read_csv(URL_CSV)
 
 # Preprocess the 'Combine_String' column, filling NaN values with empty strings
-combine_strings = job_content_df['Combine_String'].fillna('')
+combine_strings = job_content_df['Combined_String'].fillna('')
 
 # Load the saved BERT embeddings from GitHub
 response = requests.get(URL_EMBEDDINGS)
