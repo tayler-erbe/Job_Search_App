@@ -1,4 +1,3 @@
-
 import faiss
 import numpy as np
 import pandas as pd
@@ -7,6 +6,24 @@ from sentence_transformers import SentenceTransformer
 import requests
 import io
 from docx import Document  # For Word document creation
+import re
+
+# Define the cleaning function
+def clean_text(text, lowercase=True):
+    if pd.isnull(text):
+        return ""
+    # Replace any sequence of whitespace (spaces, newlines, tabs) with a single space
+    cleaned_text = re.sub(r'\s+', ' ', text)
+    # Remove leading and trailing spaces
+    cleaned_text = cleaned_text.strip()
+    # Remove trailing "nan" if it exists as a separate word at the end
+    cleaned_text = re.sub(r'\bnan\b$', '', cleaned_text).strip()
+    # Remove any surrounding quotes (both single and double)
+    cleaned_text = cleaned_text.strip(' "\'')
+    # (Optional) Convert to lowercase for consistency
+    if lowercase:
+        cleaned_text = cleaned_text.lower()
+    return cleaned_text
 
 # GitHub URLs for the required files
 URL_CSV = "https://raw.githubusercontent.com/tayler-erbe/Job_Search_App/main/job_content_fixed.csv"
@@ -16,8 +33,9 @@ URL_FAISS_INDEX = "https://raw.githubusercontent.com/tayler-erbe/Job_Search_App/
 # Load the job content data from GitHub
 job_content_df = pd.read_csv(URL_CSV)
 
-# Preprocess the 'Combine_String' column, filling NaN values with empty strings
-combine_strings = job_content_df['Combined_String'].fillna('')
+# Preprocess the 'Combined_String' column:
+# Fill NaN values with empty strings and apply the cleaning function
+job_content_df['Combined_String'] = job_content_df['Combined_String'].fillna('').apply(lambda x: clean_text(x, lowercase=True))
 
 # Load the saved BERT embeddings from GitHub
 response = requests.get(URL_EMBEDDINGS)
@@ -35,6 +53,8 @@ faiss_index = faiss.read_index("faiss_indexx.index")
 
 # Function to retrieve similar jobs using BERT embeddings
 def retrieve_similar_jobs_bert(new_job_summary, faiss_index, bert_model, top_k=5):
+    # Clean the query text as well, if desired
+    new_job_summary = clean_text(new_job_summary, lowercase=True)
     # Convert new job summary to BERT embedding
     new_embedding = bert_model.encode([new_job_summary], convert_to_tensor=True)
     
